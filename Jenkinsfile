@@ -3,9 +3,12 @@ pipeline {
 
     environment {
 
+        DOCKER_IMAGE = 'katros01/cicdjenkins'
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
+        DOCKER_CREDENTIALS_ID = credentials('docker')
         MAVEN_HOME = "/usr/local/maven"
         TOMCAT_CREDS = credentials('tomcat')
-        TOMCAT_URL = "http://localhost:8080/manager/text"
+        TOMCAT_SERVER_URL = "localhost"
         WAR_PATH = "target/CI-CD-Jenkins-0.0.1-SNAPSHOT.war"
     }
 
@@ -13,39 +16,74 @@ pipeline {
             maven 'maven'
         }
     stages {
-        stage('Build') {
-            steps {
-            script {
-                WAR_PATH = sh(
-                    script: 'find target -name "*.war" | head -n 1',
-                    returnStdout: true
-                    ).trim()
-
-                if (WAR_PATH == '') {
-                    error('WAR file not found!')
+        stage('Checkout Code') {
+                steps {
+                    git url: 'https://github.com/katros01/CI-CDPipelineJenkinsLab.git', branch: 'main'
                 }
+        }
 
-                echo "WAR file found at: ${WAR_PATH}"
-                            }
-                sh 'mvn clean package'
+        stage('Build Maven Project') {
+            steps {
+                script {
+                    bat 'mvn clean install'
+                }
             }
         }
 
+        stage('Run Tests') {
+            steps {
+                bat 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+                    steps {
+                        script {
+                            bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                        }
+                    }
+        }
 
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                        bat "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    }
 
-        stage('Deploy to Tomcat') {
+                }
+            }
+        }
+
+        stage('Deploy WAR to Tomcat') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'tomcat', usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASS')]) {
-                        sh """
-                        curl --user ${TOMCAT_USER}:${TOMCAT_PASS} \
-                        --upload-file ${WAR_PATH} \
-                        "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
+
+                        // Use curl to deploy the WAR file to Tomcat's Manager API
+                        bat """
+                        curl --upload-file target/CI-CD-Jenkins-0.0.1-SNAPSHOT.war "http://%TOMCAT_USER%:%TOMCAT_PASS%@localhost:8080/manager/text/deploy?path=/CI-CD-Jenkins&update=true"
                         """
                     }
                 }
             }
         }
+
+
+
+//         stage('Deploy to Tomcat') {
+//             steps {
+//                 script {
+//                     withCredentials([usernamePassword(credentialsId: 'tomcat', usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASS')]) {
+//                         sh """
+//                         curl --user $TOMCAT_USER:$TOMCAT_PASS \
+//                         --upload-file ${WAR_PATH} \
+//                         "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
+//                         """
+//                     }
+//                 }
+//             }
+//         }
     }
 
 
