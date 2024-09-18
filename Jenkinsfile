@@ -3,47 +3,37 @@ pipeline {
 
     environment {
 
-        MAVEN_HOME = "/usr/local/maven"  // Path to Maven installation
-        TOMCAT_USER = credentials('admin') // Tomcat manager username stored in Jenkins credentials
-        TOMCAT_PASS = credentials('babu') // Tomcat manager password stored in Jenkins credentials
-        TOMCAT_URL = "http://localhost:8080/manager/html" // Tomcat manager URL
-        WAR_PATH = '' // Path to your built WAR file
+        MAVEN_HOME = "/usr/local/maven"
+        TOMCAT_USER = credentials('admin')
+        TOMCAT_PASS = credentials('babu')
+        TOMCAT_URL = "http://localhost:8080/manager/html"
+        WAR_PATH = "target/CI-CD-Jenkins-0.0.1-SNAPSHOT.war"
     }
 
-        stage('Build') {
-            steps {
-                // Run Maven to clean and package the project
-                sh 'mvn clean package'
-            }
+    tools {
+            maven 'Maven'
         }
 
-        stage('Find WAR') {
-            steps {
-                WAR_PATH = sh(
-                    script: 'find target -name "*.war" | head -n 1',
-                    returnStdout: true
-                ).trim()
-
-                if (WAR_PATH == '') {
-                    error('WAR file not found!')
-                }
-
-                echo "WAR file found at: ${WAR_PATH}"
+    stage('Build') {
+        steps {
+            sh 'mvn clean package'
         }
+    }
 
-        stage('Deploy to Tomcat') {
-            steps {
-                script {
-                    // Deploy WAR to Tomcat using curl
-                    sh """
-                    curl --user ${TOMCAT_USER}:${TOMCAT_PASS} \
-                    --upload-file ${WAR_PATH} \
-                    "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
-                    """
-                }
+
+
+    stage('Deploy to Tomcat') {
+        steps {
+            script {
+                sh """
+                curl --user ${TOMCAT_USER}:${TOMCAT_PASS} \
+                --upload-file ${WAR_PATH} \
+                "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
+                """
             }
         }
     }
+
 
     post {
         always {
