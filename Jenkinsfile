@@ -38,8 +38,9 @@ pipeline {
 
     post {
         always {
-            // Clean up workspace after build
-            cleanWs()
+            node {
+                cleanWs()
+            }
         }
         success {
             // Notify success
