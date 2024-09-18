@@ -4,9 +4,8 @@ pipeline {
     environment {
 
         MAVEN_HOME = "/usr/local/maven"
-        TOMCAT_USER = credentials('admin')
-        TOMCAT_PASS = credentials('babu')
-        TOMCAT_URL = "http://localhost:8080/manager/html"
+        TOMCAT_CREDS = credentials('tomcat-credentials')
+        TOMCAT_URL = "http://localhost:8080/manager/text"
         WAR_PATH = "target/CI-CD-Jenkins-0.0.1-SNAPSHOT.war"
     }
 
@@ -25,11 +24,13 @@ pipeline {
         stage('Deploy to Tomcat') {
             steps {
                 script {
-                    sh """
-                    curl --user ${TOMCAT_USER}:${TOMCAT_PASS} \
-                    --upload-file ${WAR_PATH} \
-                    "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
-                    """
+                    withCredentials([usernamePassword(credentialsId: 'tomcat-credentials', usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASS')]) {
+                        sh """
+                        curl --user ${TOMCAT_USER}:${TOMCAT_PASS} \
+                        --upload-file ${WAR_PATH} \
+                        "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
+                        """
+                    }
                 }
             }
         }
