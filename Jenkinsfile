@@ -37,13 +37,7 @@ pipeline {
 
 
     post {
-        always {
-            agent any
 
-            steps {
-                cleanWs()
-            }
-        }
         success {
             // Notify success
             echo 'Application deployed successfully!'
