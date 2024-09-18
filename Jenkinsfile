@@ -15,6 +15,18 @@ pipeline {
     stages {
         stage('Build') {
             steps {
+            script {
+                WAR_PATH = sh(
+                    script: 'find target -name "*.war" | head -n 1',
+                    returnStdout: true
+                    ).trim()
+
+                if (WAR_PATH == '') {
+                    error('WAR file not found!')
+                }
+
+                echo "WAR file found at: ${WAR_PATH}"
+                            }
                 sh 'mvn clean package'
             }
         }
