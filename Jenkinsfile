@@ -33,21 +33,22 @@ pipeline {
                 }
             }
         }
+    }
 
 
-        post {
-            always {
-                // Clean up workspace after build
-                cleanWs()
-            }
-            success {
-                // Notify success
-                echo 'Application deployed successfully!'
-            }
-            failure {
-                // Notify failure
-                echo 'Application deployment failed.'
-            }
+    post {
+        always {
+            // Clean up workspace after build
+            cleanWs()
+        }
+        success {
+            // Notify success
+            echo 'Application deployed successfully!'
+        }
+        failure {
+            // Notify failure
+            echo 'Application deployment failed.'
         }
     }
+
 }
