@@ -6,7 +6,6 @@ pipeline {
         DOCKER_IMAGE = 'katros01/cicdjenkins'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDENTIALS_ID = credentials('docker')
-        MAVEN_HOME = "/usr/local/maven"
         TOMCAT_CREDS = credentials('tomcat')
         TOMCAT_SERVER_URL = "localhost"
         WAR_PATH = "target/CI-CD-Jenkins-0.0.1-SNAPSHOT.war"
@@ -15,6 +14,7 @@ pipeline {
     tools {
             maven 'maven'
         }
+
     stages {
         stage('Checkout Code') {
                 steps {
@@ -35,12 +35,13 @@ pipeline {
                 bat 'mvn test'
             }
         }
+
         stage('Build Docker Image') {
-                    steps {
-                        script {
-                            bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                        }
-                    }
+            steps {
+                script {
+                    bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                }
+            }
         }
 
         stage('Push Docker Image') {
@@ -59,8 +60,6 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'tomcat', usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASS')]) {
-
-                        // Use curl to deploy the WAR file to Tomcat's Manager API
                         bat """
                         curl --upload-file target/CI-CD-Jenkins-0.0.1-SNAPSHOT.war "http://%TOMCAT_USER%:%TOMCAT_PASS%@localhost:8080/manager/text/deploy?path=/CI-CD-Jenkins&update=true"
                         """
@@ -68,35 +67,21 @@ pipeline {
                 }
             }
         }
-
-
-
-//         stage('Deploy to Tomcat') {
-//             steps {
-//                 script {
-//                     withCredentials([usernamePassword(credentialsId: 'tomcat', usernameVariable: 'TOMCAT_USER', passwordVariable: 'TOMCAT_PASS')]) {
-//                         sh """
-//                         curl --user $TOMCAT_USER:$TOMCAT_PASS \
-//                         --upload-file ${WAR_PATH} \
-//                         "${TOMCAT_URL}/deploy?path=/your-app-name&update=true"
-//                         """
-//                     }
-//                 }
-//             }
-//         }
     }
-
 
     post {
 
+        always {
+            echo 'Cleaning workspace...'
+            cleanWs()
+        }
+
         success {
-            // Notify success
             echo 'Application deployed successfully!'
         }
+
         failure {
-            // Notify failure
             echo 'Application deployment failed.'
         }
     }
-
 }
